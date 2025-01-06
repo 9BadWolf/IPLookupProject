@@ -19,7 +19,7 @@ public class CacheService
 
     public async Task<IResult> GetOrAddCacheAsync(string key)
     {
-        if (_cache.TryGetValue(key, out LocationData? cachedValue))
+        if (_cache.TryGetValue(key, out IpDetails? cachedValue))
         {
             return Results.Ok(cachedValue);
         }
@@ -33,7 +33,7 @@ public class CacheService
                 return Results.NotFound("Ip details not found in cache or external service.");
             
             var content = await response.Content.ReadAsStringAsync();
-            var item = JsonSerializer.Deserialize<LocationData>(content);
+            var item = JsonSerializer.Deserialize<IpDetails>(content);
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromMinutes(1));
             _cache.Set(key, item, cacheEntryOptions);
@@ -50,5 +50,14 @@ public class CacheService
             Log.Error(ex, "An unexpected error occurred for IP: {IPAddress}", key);
             throw;
         }
+    }
+
+    public async Task<IResult> AddCacheAsync(string key, IpDetails location )
+    {
+        var cacheEntryOptions = new MemoryCacheEntryOptions()
+            .SetSlidingExpiration(TimeSpan.FromMinutes(1));
+        _cache.Set(key, location, cacheEntryOptions);
+        
+        return Results.Ok(location);
     }
 }

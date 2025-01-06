@@ -11,6 +11,7 @@ public static class ConfigureServices
         builder.AddSerilog();
         builder.AddSwagger();
         builder.AddIPLookupClient();
+        builder.AddCorsServices();
         builder.Services.AddMemoryCache();
         builder.Services.AddScoped<CacheService>();
     }
@@ -35,6 +36,19 @@ public static class ConfigureServices
         {
             client.BaseAddress = new Uri("http://localhost:5290");
             client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+    }
+    
+    private static void AddCorsServices(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+            {
+                policy.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+            });
         });
     }
 }

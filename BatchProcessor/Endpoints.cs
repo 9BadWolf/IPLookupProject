@@ -1,7 +1,6 @@
-﻿using Cache.Common;
-using CachingApi.Services;
+﻿using BatchProcessor.Common;
 
-namespace CachingApi;
+namespace BatchProcessor;
 
 public static class Endpoints
 {
@@ -9,8 +8,7 @@ public static class Endpoints
     {
         var endpoints = app.MapGroup("")
             .WithOpenApi();
-        endpoints.MapEndpoint<GetOrAdd>();
-        endpoints.MapEndpoint<AddToCache>();
+       // endpoints.MapEndpoint<Lookup>();
     }
     private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app) where TEndpoint : IEndpoint
     {

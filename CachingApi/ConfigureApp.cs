@@ -9,7 +9,8 @@ public static class ConfigureApp
       app.UseSerilogRequestLogging();
       app.UseSwagger();
       app.UseSwaggerUI();
-     app.UseHttpsRedirection();
+      app.UseHttpsRedirection();
       app.MapEndpoints();
+      app.UseCors("AllowAll");
     }
 }
