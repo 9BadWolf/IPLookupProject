@@ -6,8 +6,8 @@ namespace CachingApi.Services;
 public class GetOrAdd :IEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) => app
-        .MapGet("/cache/{key}", async (string key, CacheService cache) =>
-            await cache.GetOrAddCacheAsync(key))
+        .MapGet($"{Constants.GetOrAdd}{{iPAddress}}", async (string iPAddress, CacheService cache) =>
+            await cache.GetOrAddCacheAsync(iPAddress))
         .WithName("GetCachedIpDetails")
         .WithOpenApi(op => new(op)
         {

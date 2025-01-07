@@ -1,4 +1,5 @@
-﻿using CachingApi.Services;
+﻿using Cache.Common;
+using CachingApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Serilog;
 
@@ -10,10 +11,12 @@ public static class ConfigureServices
     {
         builder.AddSerilog();
         builder.AddSwagger();
-        builder.AddIPLookupClient();
+        builder.AddConfig();        
         builder.AddCorsServices();
+        builder.Services.AddHttpClient();
         builder.Services.AddMemoryCache();
         builder.Services.AddScoped<CacheService>();
+        builder.Services.Configure<LookupApi>(builder.Configuration.GetSection("LookupApi"));
     }
 
     private static void AddSwagger(this WebApplicationBuilder builder)
@@ -30,15 +33,6 @@ public static class ConfigureServices
         });
     }
     
-    private static void AddIPLookupClient(this WebApplicationBuilder builder)
-    {
-        builder.Services.AddHttpClient("IPLookup", client =>
-        {
-            client.BaseAddress = new Uri("http://localhost:5290");
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
-        });
-    }
-    
     private static void AddCorsServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddCors(options =>
@@ -50,5 +44,14 @@ public static class ConfigureServices
                     .AllowAnyHeader();
             });
         });
+    }
+    
+    private static void AddConfig(this WebApplicationBuilder builder)
+    {
+        builder.Configuration
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) 
+            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true) 
+            .AddEnvironmentVariables();
     }
 }

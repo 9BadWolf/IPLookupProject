@@ -17,9 +17,9 @@ public class CacheService
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<IResult> GetOrAddCacheAsync(string key)
+    public async Task<IResult> GetOrAddCacheAsync(string ipAddress)
     {
-        if (_cache.TryGetValue(key, out IpDetails? cachedValue))
+        if (_cache.TryGetValue(ipAddress, out IpDetails? cachedValue))
         {
             return Results.Ok(cachedValue);
         }
@@ -27,7 +27,7 @@ public class CacheService
         try
         {
             var client = _httpClientFactory.CreateClient("IPLookupClient");
-            var response = await client.GetAsync($"http://localhost:5290/get-ip-details/{key}");
+            var response = await client.GetAsync($"http://localhost:5290/get-ip-details/{ipAddress}");
 
             if (!response.IsSuccessStatusCode)
                 return Results.NotFound("Ip details not found in cache or external service.");
@@ -36,7 +36,7 @@ public class CacheService
             var item = JsonSerializer.Deserialize<IpDetails>(content);
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetSlidingExpiration(TimeSpan.FromMinutes(1));
-            _cache.Set(key, item, cacheEntryOptions);
+            _cache.Set(ipAddress, item, cacheEntryOptions);
 
             return Results.Ok(item);
         }
@@ -47,16 +47,16 @@ public class CacheService
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "An unexpected error occurred for IP: {IPAddress}", key);
+            Log.Error(ex, "An unexpected error occurred for IP: {IPAddress}", ipAddress);
             throw;
         }
     }
 
-    public async Task<IResult> AddCacheAsync(string key, IpDetails location )
+    public async Task<IResult> AddCacheAsync(string ipAddress, IpDetails location )
     {
         var cacheEntryOptions = new MemoryCacheEntryOptions()
             .SetSlidingExpiration(TimeSpan.FromMinutes(1));
-        _cache.Set(key, location, cacheEntryOptions);
+        _cache.Set(ipAddress, location, cacheEntryOptions);
         
         return Results.Ok(location);
     }

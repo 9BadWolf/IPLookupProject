@@ -7,8 +7,8 @@ namespace CachingApi.Services;
 public class AddToCache : IEndpoint
 {
      public static void Map(IEndpointRouteBuilder app) => app
-        .MapPut("/cache/add/{key}", async (string key,[FromBody] IpDetails value, CacheService cache) =>
-            await cache.AddCacheAsync(key, value))
+        .MapPut($"{Constants.AddToCache}{{ipAddress}}", async (string ipAddress,[FromBody] IpDetails value, CacheService cache) =>
+            await cache.AddCacheAsync(ipAddress, value))
         .WithName("AddCachedIpDetails")
         .WithOpenApi(op => new(op)
         {
