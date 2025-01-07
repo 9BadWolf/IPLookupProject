@@ -1,7 +1,10 @@
 ﻿using System.Text.Json;
+using Cache.Common;
 using IPLookup.Common;
 using IPLookup.Types;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using Serilog;
 
 namespace CachingApi.Services;
@@ -10,27 +13,29 @@ public class CacheService
 {
     private readonly IMemoryCache _cache;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly LookupApi _options;
     
-    public CacheService(IMemoryCache cache, IHttpClientFactory httpClientFactory)
+    public CacheService(IMemoryCache cache, IHttpClientFactory httpClientFactory, IOptions<LookupApi> options)
     {
         _cache = cache;
         _httpClientFactory = httpClientFactory;
+        _options = options.Value;
     }
-
-    public async Task<IResult> GetOrAddCacheAsync(string ipAddress)
+    
+    public async Task<Results<Ok<IpDetails>,NotFound<string>>> GetOrAddCacheAsync(string ipAddress)
     {
         if (_cache.TryGetValue(ipAddress, out IpDetails? cachedValue))
         {
-            return Results.Ok(cachedValue);
+            return TypedResults.Ok(cachedValue);
         }
 
         try
         {
-            var client = _httpClientFactory.CreateClient("IPLookupClient");
-            var response = await client.GetAsync($"http://localhost:5290/get-ip-details/{ipAddress}");
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.GetAsync($"{_options.BaseUrl}ipdetails/{ipAddress}");
 
             if (!response.IsSuccessStatusCode)
-                return Results.NotFound("Ip details not found in cache or external service.");
+                return TypedResults.NotFound("Ip details not found in cache or external service.");
             
             var content = await response.Content.ReadAsStringAsync();
             var item = JsonSerializer.Deserialize<IpDetails>(content);
@@ -38,7 +43,7 @@ public class CacheService
                 .SetSlidingExpiration(TimeSpan.FromMinutes(1));
             _cache.Set(ipAddress, item, cacheEntryOptions);
 
-            return Results.Ok(item);
+            return TypedResults.Ok(item);
         }
         catch (HttpRequestException ex)
         {
@@ -52,12 +57,21 @@ public class CacheService
         }
     }
 
-    public async Task<IResult> AddCacheAsync(string ipAddress, IpDetails location )
+    public async Task<IpDetails?> AddCacheAsync(string ipAddress, IpDetails details )
     {
+        Log.Information("Adding to cache.");
+
         var cacheEntryOptions = new MemoryCacheEntryOptions()
             .SetSlidingExpiration(TimeSpan.FromMinutes(1));
-        _cache.Set(ipAddress, location, cacheEntryOptions);
+        _cache.Set(ipAddress, details, cacheEntryOptions);
         
-        return Results.Ok(location);
+        if (_cache.TryGetValue(ipAddress, out IpDetails? cachedItem))
+        {
+            return cachedItem;
+        }
+        
+        Log.Error("Failed to add to cache.");
+        
+        return null;
     }
 }

@@ -1,4 +1,5 @@
-﻿using IPLookup.Common.Results;
+﻿using System.Net;
+using IPLookup.Common.Results;
 
 namespace IPLookup.Common;
 

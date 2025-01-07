@@ -1,8 +1,4 @@
-﻿using System.Collections.Concurrent;
-using BatchProcessor.Types;
-using Hangfire;
-using Serilog;
-using StackExchange.Redis;
+﻿using Serilog;
 
 namespace BatchProcessor;
 
@@ -15,8 +11,5 @@ public static class ConfigureApp
         app.UseSwaggerUI();
         app.UseHttpsRedirection();
         app.MapEndpoints();
-        app.UseHangfireDashboard();
-        var redis = app.Services.GetRequiredService<IConnectionMultiplexer>();
-        var db = redis.GetDatabase();
     }
 }

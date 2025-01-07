@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using IPLookup.Common;
 using IPLookup.Common.Results;
 using IPLookup.Service;
 using IPLookup.Services;
@@ -13,13 +14,14 @@ public static class ConfigureServices
     {
         builder.AddSerilog();
         builder.AddSwagger();
-        builder.AddCorsServices();
-        builder.AddConfig();
         builder.Services.AddHttpClient();
         builder.Services.AddScoped<Lookup, Lookup>();
         builder.Services.AddScoped<IIpStackErrorHandler, IpStackErrorHandler>();
         builder.Services.AddScoped<IIpStackService, IpStackService>();
-        builder.Services.Configure<IpStack>(builder.Configuration.GetSection("IpStack"));
+        builder.Services.AddOptionsWithValidateOnStart<IpStack>()
+            .BindConfiguration(IpStack.ConfigurationSectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         builder.Services.AddValidatorsFromAssembly(typeof(ConfigureServices).Assembly);
     }
     
@@ -35,27 +37,5 @@ public static class ConfigureServices
         {
             configuration.ReadFrom.Configuration(context.Configuration);
         });
-    }
-    
-    private static void AddCorsServices(this WebApplicationBuilder builder)
-    {
-        builder.Services.AddCors(options =>
-        {
-            options.AddPolicy("AllowAll", policy =>
-            {
-                policy.AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader();
-            });
-        });
-    }
-
-    private static void AddConfig(this WebApplicationBuilder builder)
-    {
-        builder.Configuration
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) 
-            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true) 
-            .AddEnvironmentVariables();
     }
 }

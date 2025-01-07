@@ -11,6 +11,5 @@ public static class ConfigureApp
         app.UseSwaggerUI();
         app.UseHttpsRedirection();
         app.MapEndpoints();
-        app.UseCors("AllowAll");
     }
 }

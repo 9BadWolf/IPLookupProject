@@ -20,7 +20,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\RiderProjects\IpProject\IPLookup\IPLookup.csproj" />
       <ProjectReference Include="..\IPLookup\IPLookup.csproj" />
     </ItemGroup>
 
