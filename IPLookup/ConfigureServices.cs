@@ -13,12 +13,13 @@ public static class ConfigureServices
     {
         builder.AddSerilog();
         builder.AddSwagger();
-        builder.AddIpStackClient();
         builder.AddCorsServices();
+        builder.AddConfig();
+        builder.Services.AddHttpClient();
         builder.Services.AddScoped<Lookup, Lookup>();
         builder.Services.AddScoped<IIpStackErrorHandler, IpStackErrorHandler>();
         builder.Services.AddScoped<IIpStackService, IpStackService>();
-        builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
+        builder.Services.Configure<IpStack>(builder.Configuration.GetSection("IpStack"));
         builder.Services.AddValidatorsFromAssembly(typeof(ConfigureServices).Assembly);
     }
     
@@ -35,16 +36,7 @@ public static class ConfigureServices
             configuration.ReadFrom.Configuration(context.Configuration);
         });
     }
-
-    private static void AddIpStackClient(this WebApplicationBuilder builder)
-    {
-        builder.Services.AddHttpClient("IPstack", client =>
-        {
-            client.BaseAddress = new Uri("https://api.ipstack.com/");
-           // client.DefaultRequestHeaders.Add("Accept", "application/json");
-        });
-    }
-
+    
     private static void AddCorsServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddCors(options =>
@@ -56,5 +48,14 @@ public static class ConfigureServices
                     .AllowAnyHeader();
             });
         });
+    }
+
+    private static void AddConfig(this WebApplicationBuilder builder)
+    {
+        builder.Configuration
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) 
+            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true) 
+            .AddEnvironmentVariables();
     }
 }
