@@ -6,11 +6,7 @@ namespace IPLookup.Services;
 public class Lookup(IIpStackService ipStackService) : IEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) => app
-        .MapGet("get-ip-details/{ipAddress}",
-            async (string ipAddress, Lookup lookup, CancellationToken cancellationToken) =>
-            {
-                return await lookup.Handle(ipAddress, cancellationToken);
-            })
+        .MapGet($"{Constants.GetDetails}{{ipAddress}}",Handle)
         .AddEndpointFilter<ValidateIPFilter>()
         .WithName("GetIPDetails")
         .WithOpenApi(op => new(op)
@@ -19,7 +15,7 @@ public class Lookup(IIpStackService ipStackService) : IEndpoint
             Description = "Retrieves geographical and other details for a provided IP address."
         });
     
-    private async Task<IResult> Handle(string ipAddress, CancellationToken cancellationToken)
+    private static async Task<IResult> Handle(string ipAddress,IIpStackService ipStackService, CancellationToken cancellationToken)
     {
         var locationData = await ipStackService.GetLocationDataAsync(ipAddress, cancellationToken);
 

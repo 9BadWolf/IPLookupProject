@@ -14,18 +14,25 @@ public interface IIpStackService
 
 public class IpStackService(
     IHttpClientFactory httpClientFactory,
-    IOptions<ApiSettings> apiSettings,
+    IOptions<IpStack> apiSettings,
     IIpStackErrorHandler errorHandler)
     : IIpStackService
 {
-    private readonly string _apiKey = apiSettings.Value.IpStackApiKey;
+
+    private readonly string _baseUrl = apiSettings.Value.BaseUrl;
+    private readonly string _apiKey = apiSettings.Value.AccessKey;
 
     public async Task<IpDetails?> GetLocationDataAsync(string ipAddress, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrEmpty(_baseUrl) || string.IsNullOrEmpty(_apiKey))
+        {
+            throw new InvalidOperationException("IPStack configuration is missing.");
+        }
+        
         try
         {
-            var client = httpClientFactory.CreateClient("ipstack");
-            var response = await client.GetAsync($"https://api.ipstack.com/{ipAddress}?access_key={_apiKey}",
+            var client = httpClientFactory.CreateClient();
+            var response = await client.GetAsync($"{_baseUrl}/{ipAddress}?access_key={_apiKey}",
                 cancellationToken);
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
