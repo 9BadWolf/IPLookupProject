@@ -7,9 +7,9 @@ namespace BatchProcessor.Services;
 public class PostBatch :IEndpoint
 {
     public static void Map(IEndpointRouteBuilder app) => app
-        .MapPost($"{Constants.PostBatch}", async (BatchService batchService, [FromBody] BatchRequest batchRequest) =>
+        .MapPost($"/api/processbatch/", async (BatchJobProcessing batchService, [FromBody] BatchRequest batchRequest) =>
         {
-            var batchId = await batchService.CreateBatchAsync(batchRequest);
+            var batchId = await batchService.(batchRequest);
             return Results.Ok(new { BatchId = batchId });
         })
         .WithName("ProcessBatch")

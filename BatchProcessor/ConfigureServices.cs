@@ -11,8 +11,11 @@ public static class ConfigureServices
         builder.AddSerilog();
         builder.AddSwagger();
         builder.Services.AddHttpClient();
-        builder.Services.AddSingleton<BatchService>();
-        builder.Services.Configure<ServicesUrls>(builder.Configuration.GetSection("ServicesUrls"));
+        builder.Services.AddSingleton<BatchJobProcessing>();
+        builder.Services.AddOptionsWithValidateOnStart<CachingApi>()
+            .BindConfiguration(CachingApi.ConfigurationSectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
     }
 
     private static void AddSwagger(this WebApplicationBuilder builder)
