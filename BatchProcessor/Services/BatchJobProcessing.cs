@@ -36,7 +36,7 @@ public class BatchJobProcessing : BackgroundService
             BatchId = batchId,
             IpAddresses = batchRequest.IpAddresses,
             Status = StatusEnum.Pending,
-            Results = new List<string>(),
+            Results = [],
             TotalCount = batchRequest.IpAddresses.Count
         };
 
