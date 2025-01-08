@@ -19,9 +19,10 @@ public class ProcessBatch : IEndpoint
             });
     }
 
-    private static async Task<IResult> Handle([FromBody] BatchRequest batchRequest,
-        [FromServices] BatchJobProcessing batchService, CancellationToken cancellationToken)
+    private static async Task<IResult> Handle( BatchRequest batchRequest,
+         IEnumerable<IHostedService> services, CancellationToken cancellationToken)
     {
+        var batchService = services.OfType<BatchJobProcessing>().First();
         var batchId = await batchService.CreateBatchAsync(batchRequest, cancellationToken);
 
         return TypedResults.Ok(new { BatchId = batchId });

@@ -20,8 +20,9 @@ public class GetStatus : IEndpoint
     }
 
     private static async Task<Results<Ok<Batch>, NotFound<string>>> Handle(Guid batchId,
-        BatchJobProcessing batchService)
+        IEnumerable<IHostedService> services, CancellationToken cancellationToken)
     {
+        var batchService = services.OfType<BatchJobProcessing>().First();
         var batchStatus = batchService.GetBatchStatus(batchId);
         return batchStatus == null
             ? TypedResults.NotFound("I can't find the provided batch ID")

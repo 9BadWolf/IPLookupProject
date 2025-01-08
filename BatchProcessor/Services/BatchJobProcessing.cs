@@ -7,6 +7,9 @@ namespace BatchProcessor.Services;
 
 public class BatchJobProcessing : BackgroundService
 {
+    private const int ChunkSize = 10;
+    private const int DelayDequeueing = 1;
+    private const int DelayChunks = 1;
     private readonly ConcurrentDictionary<Guid, Batch> _batches;
     private readonly CachingApi _cachingApi;
     private readonly ILogger<BatchJobProcessing> _logger;
@@ -15,12 +18,11 @@ public class BatchJobProcessing : BackgroundService
 
     public BatchJobProcessing(
         ILogger<BatchJobProcessing> logger,
-        ConcurrentQueue<Batch> queue,
         IServiceScopeFactory serviceScopeFactory,
         IOptions<CachingApi> options)
     {
         _logger = logger;
-        _queue = queue;
+        _queue = new ConcurrentQueue<Batch>();
         _batches = new ConcurrentDictionary<Guid, Batch>();
         _serviceScopeFactory = serviceScopeFactory;
         _cachingApi = options.Value;
@@ -60,31 +62,43 @@ public class BatchJobProcessing : BackgroundService
         using var scope = _serviceScopeFactory.CreateScope();
         var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         var httpClient = httpClientFactory.CreateClient();
-
-        foreach (var ipAddress in batch.IpAddresses)
+        var chunks = batch.IpAddresses.Chunk(ChunkSize).ToList();
+        
+        foreach (var chunk in chunks)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
+            foreach (var ipAddress in chunks)
             {
-                var response = await httpClient.GetAsync($"{_cachingApi.BaseUrl}/getoradd/{ipAddress}");
-                if (response.IsSuccessStatusCode)
+                if (cancellationToken.IsCancellationRequested)
                 {
-                    batch.Results.Add($"Success: {ipAddress}");
-                }
-                else
-                {
-                    hasFailedIps = true;
-                    batch.Results.Add($"Failed: {ipAddress} - {response.StatusCode}");
+                    break;
                 }
 
-                batch.ProcessedCount++;
+                try
+                {
+                    var response = await httpClient.GetAsync($"{_cachingApi.BaseUrl}/getoradd/{ipAddress}", cancellationToken);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        batch.Results.Add($"Success: {ipAddress}");
+                    }
+                    else
+                    {
+                        hasFailedIps = true;
+                        batch.Results.Add($"Failed: {ipAddress} - {response.StatusCode}");
+                    }
+
+                    batch.ProcessedCount++;
+                }
+            
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Something went wrong");
+                    hasFailedIps = true;
+                    batch.Results.Add($"Error: {ipAddress} - {ex.Message}");
+                    batch.ProcessedCount++;
+                }
             }
-            catch (Exception ex)
-            {
-                hasFailedIps = true;
-                batch.Results.Add($"Error: {ipAddress} - {ex.Message}");
-                batch.ProcessedCount++;
-            }
+            
+            await Task.Delay(TimeSpan.FromMinutes(DelayChunks), cancellationToken);
         }
 
         _logger.LogInformation("Successfully processed batch with {BatchId}", batch.BatchId);
@@ -107,7 +121,7 @@ public class BatchJobProcessing : BackgroundService
                 _logger.LogWarning("No batches in the queue to process.");
             }
 
-            await Task.Delay(1000, cancellationToken);
+            await Task.Delay(TimeSpan.FromMinutes(DelayDequeueing), cancellationToken);
         }
     }
 }

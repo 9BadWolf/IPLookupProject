@@ -11,8 +11,6 @@ public static class ConfigureServices
     {
         builder.AddSwagger();
         builder.Services.AddHttpClient();
-        builder.Services.AddSingleton<ConcurrentQueue<Batch>>();
-        builder.Services.AddSingleton<BatchJobProcessing>();
         builder.Services.AddHostedService<BatchJobProcessing>();
         builder.Services.AddOptionsWithValidateOnStart<CachingApi>()
             .BindConfiguration(CachingApi.ConfigurationSectionName)
