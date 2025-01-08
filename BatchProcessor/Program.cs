@@ -1,14 +1,11 @@
 using BatchProcessor;
-using Serilog;
-
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
 
 try
 {
-    Log.Information("Starting web application");
     var builder = WebApplication.CreateBuilder(args);
+    var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+    var logger = loggerFactory.CreateLogger<Program>();
+    logger.LogInformation("Starting Batch Processor");
     builder.AddServices();
     var app = builder.Build();
     await app.Configure();
@@ -16,9 +13,6 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
+    var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<Program>();
+    logger.LogError(ex, "Application terminated unexpectedly");
 }

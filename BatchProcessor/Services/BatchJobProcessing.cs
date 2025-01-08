@@ -5,17 +5,17 @@ using Microsoft.Extensions.Options;
 
 namespace BatchProcessor.Services;
 
-public class BatchJobProcessing: BackgroundService
+public class BatchJobProcessing : BackgroundService
 {
-    private readonly ILogger<BatchJobProcessing> _logger;
-    private readonly ConcurrentQueue<BatchRequest> _queue;
     private readonly ConcurrentDictionary<Guid, Batch> _batches;
-    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly CachingApi _cachingApi;
+    private readonly ILogger<BatchJobProcessing> _logger;
+    private readonly ConcurrentQueue<Batch> _queue;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
 
     public BatchJobProcessing(
         ILogger<BatchJobProcessing> logger,
-        ConcurrentQueue<BatchRequest> queue,
+        ConcurrentQueue<Batch> queue,
         IServiceScopeFactory serviceScopeFactory,
         IOptions<CachingApi> options)
     {
@@ -25,20 +25,8 @@ public class BatchJobProcessing: BackgroundService
         _serviceScopeFactory = serviceScopeFactory;
         _cachingApi = options.Value;
     }
-    
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            if (_queue.TryDequeue(out var batchRequest))
-            {
-                var batchId = await CreateBatchAsync(batchRequest);
-                await ProcessBatchAsync(batchId);
-            }
-            await Task.Delay(1000, stoppingToken); 
-        }
-    }
-    private async Task<Guid> CreateBatchAsync(BatchRequest batchRequest)
+
+    public async Task<Guid> CreateBatchAsync(BatchRequest batchRequest, CancellationToken cancellationToken)
     {
         var batchId = Guid.NewGuid();
         var batch = new Batch
@@ -51,26 +39,31 @@ public class BatchJobProcessing: BackgroundService
         };
 
         _batches[batchId] = batch;
+        _queue.Enqueue(batch);
+
         return batchId;
     }
-    
-    private async Task ProcessBatchAsync(Guid batchId)
+
+    public Batch? GetBatchStatus(Guid batchId)
     {
-        if (!_batches.TryGetValue(batchId, out var batch))
-        {
-            _logger.LogError($"Batch with ID {batchId} not found.");
-            return;
-        }
+        _batches.TryGetValue(batchId, out var batch);
+        return batch;
+    }
+
+    private async Task ProcessBatchAsync(Batch batch, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Started processing batch with {BatchId}", batch.BatchId);
 
         batch.Status = StatusEnum.InProgress;
-        var failedIps = new List<string>();
-        
+        var hasFailedIps = false;
+
         using var scope = _serviceScopeFactory.CreateScope();
         var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         var httpClient = httpClientFactory.CreateClient();
 
         foreach (var ipAddress in batch.IpAddresses)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 var response = await httpClient.GetAsync($"{_cachingApi.BaseUrl}/getoradd/{ipAddress}");
@@ -80,7 +73,7 @@ public class BatchJobProcessing: BackgroundService
                 }
                 else
                 {
-                    failedIps.Add(ipAddress);
+                    hasFailedIps = true;
                     batch.Results.Add($"Failed: {ipAddress} - {response.StatusCode}");
                 }
 
@@ -88,19 +81,33 @@ public class BatchJobProcessing: BackgroundService
             }
             catch (Exception ex)
             {
-                failedIps.Add(ipAddress);
+                hasFailedIps = true;
                 batch.Results.Add($"Error: {ipAddress} - {ex.Message}");
                 batch.ProcessedCount++;
             }
         }
 
-        batch.Status = failedIps.Count == 0 ? StatusEnum.Completed : StatusEnum.Failed;
-        _batches[batchId] = batch;
+        _logger.LogInformation("Successfully processed batch with {BatchId}", batch.BatchId);
+
+        batch.Status = hasFailedIps ? StatusEnum.Failed : StatusEnum.Completed;
+        _batches[batch.BatchId] = batch;
     }
 
-    public Batch GetBatchStatus(Guid batchId)
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
-        _batches.TryGetValue(batchId, out var batch);
-        return batch;
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            if (_queue.TryDequeue(out var batch))
+            {
+                _logger.LogInformation("Processing batch with ID: {BatchId}", batch.BatchId);
+                await ProcessBatchAsync(batch, cancellationToken);
+            }
+            else
+            {
+                _logger.LogWarning("No batches in the queue to process.");
+            }
+
+            await Task.Delay(1000, cancellationToken);
+        }
     }
 }

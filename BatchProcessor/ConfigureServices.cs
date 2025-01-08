@@ -1,6 +1,7 @@
-﻿using BatchProcessor.Common;
+﻿using System.Collections.Concurrent;
+using BatchProcessor.Common;
 using BatchProcessor.Services;
-using Serilog;
+using BatchProcessor.Types;
 
 namespace BatchProcessor;
 
@@ -8,10 +9,11 @@ public static class ConfigureServices
 {
     public static void AddServices(this WebApplicationBuilder builder)
     {
-        builder.AddSerilog();
         builder.AddSwagger();
         builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<ConcurrentQueue<Batch>>();
         builder.Services.AddSingleton<BatchJobProcessing>();
+        builder.Services.AddHostedService<BatchJobProcessing>();
         builder.Services.AddOptionsWithValidateOnStart<CachingApi>()
             .BindConfiguration(CachingApi.ConfigurationSectionName)
             .ValidateDataAnnotations()
@@ -22,13 +24,5 @@ public static class ConfigureServices
     {
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-    }
-
-    private static void AddSerilog(this WebApplicationBuilder builder)
-    {
-        builder.Host.UseSerilog((context, configuration) =>
-        {
-            configuration.ReadFrom.Configuration(context.Configuration);
-        });
     }
 }

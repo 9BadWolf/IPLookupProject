@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace IPLookup.Common.Results;
 
-public sealed class InvalidProblem : IResult, IEndpointMetadataProvider, IStatusCodeHttpResult, IContentTypeHttpResult, IValueHttpResult, IValueHttpResult<ProblemDetails>
+public sealed class InvalidProblem : IResult, IEndpointMetadataProvider, IStatusCodeHttpResult, IContentTypeHttpResult,
+    IValueHttpResult, IValueHttpResult<ProblemDetails>
 {
     private readonly ProblemHttpResult problem;
 
@@ -19,18 +20,20 @@ public sealed class InvalidProblem : IResult, IEndpointMetadataProvider, IStatus
         );
     }
 
-    public int? StatusCode => StatusCodes.Status400BadRequest;
     public string? ContentType => problem.ContentType;
-    public object? Value => problem.ProblemDetails;
-    ProblemDetails? IValueHttpResult<ProblemDetails>.Value => problem.ProblemDetails;
 
     public static void PopulateMetadata(MethodInfo method, EndpointBuilder builder)
     {
-        builder.Metadata.Add(new ProducesResponseTypeMetadata(StatusCodes.Status404NotFound, typeof(ProblemDetails), ["application/problem+json"]));
+        builder.Metadata.Add(new ProducesResponseTypeMetadata(StatusCodes.Status404NotFound, typeof(ProblemDetails),
+            ["application/problem+json"]));
     }
 
     public async Task ExecuteAsync(HttpContext httpContext)
     {
         await problem.ExecuteAsync(httpContext);
     }
+
+    public int? StatusCode => StatusCodes.Status400BadRequest;
+    public object? Value => problem.ProblemDetails;
+    ProblemDetails? IValueHttpResult<ProblemDetails>.Value => problem.ProblemDetails;
 }

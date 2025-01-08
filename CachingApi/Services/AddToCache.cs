@@ -2,6 +2,7 @@
 using IPLookup.Types;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi.Models;
 
 namespace CachingApi.Services;
 
@@ -17,12 +18,13 @@ public class AddToCache : IEndpoint
         });
 
 
-private static async Task<Results<BadRequest<string>,Ok<IpDetails>>> Handle(string ipAddress,[FromBody] IpDetails value,CacheService cache, CancellationToken cancellationToken)
-{
-    var cachedItem= await cache.AddCacheAsync(ipAddress, value);
+    private static async Task<Results<BadRequest<string>, Ok<IpDetails>>> Handle(string ipAddress,
+        [FromBody] IpDetails value, CacheService cache, CancellationToken cancellationToken)
+    {
+        var cachedItem = await cache.AddCacheAsync(ipAddress, value);
 
-         return cachedItem == null 
-             ? TypedResults.BadRequest("Failed to add to cache.") 
-             : TypedResults.Ok(cachedItem);
-     }
+        return cachedItem == null
+            ? TypedResults.BadRequest("Failed to add to cache.")
+            : TypedResults.Ok(cachedItem);
+    }
 }

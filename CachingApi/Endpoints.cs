@@ -12,7 +12,9 @@ public static class Endpoints
         endpoints.MapEndpoint<GetOrAdd>();
         endpoints.MapEndpoint<AddToCache>();
     }
-    private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app) where TEndpoint : IEndpoint
+
+    private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app)
+        where TEndpoint : IEndpoint
     {
         TEndpoint.Map(app);
         return app;

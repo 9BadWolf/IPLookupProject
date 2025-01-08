@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Routing;
-
-namespace Cache.Common;
+﻿namespace Cache.Common;
 
 public interface IEndpoint
 {

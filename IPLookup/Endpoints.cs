@@ -1,5 +1,4 @@
 ﻿using IPLookup.Common;
-using IPLookup.Service;
 using IPLookup.Services;
 
 namespace IPLookup;
@@ -12,7 +11,9 @@ public static class Endpoints
             .WithOpenApi();
         endpoints.MapEndpoint<Lookup>();
     }
-    private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app) where TEndpoint : IEndpoint
+
+    private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app)
+        where TEndpoint : IEndpoint
     {
         TEndpoint.Map(app);
         return app;
