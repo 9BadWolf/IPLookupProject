@@ -7,10 +7,10 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["BatchProcessor/BatchProcessor.csproj", "BatchProcessor/"]
-RUN dotnet restore "BatchProcessor/BatchProcessor.csproj"
+COPY ["BatchProcessor.csproj", "."]
+RUN dotnet restore "BatchProcessor.csproj"
 COPY . .
-WORKDIR "/src/BatchProcessor"
+WORKDIR "/src/"
 RUN dotnet build "BatchProcessor.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

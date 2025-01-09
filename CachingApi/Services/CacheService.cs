@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using Cache.Common;
-using IPLookup.Common;
-using IPLookup.Types;
+using CachingApi.Common;
+using CachingApi.Types;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;

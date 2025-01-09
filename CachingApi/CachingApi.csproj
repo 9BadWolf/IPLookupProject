@@ -18,9 +18,4 @@
             <Link>.dockerignore</Link>
         </Content>
     </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\IPLookup\IPLookup.csproj"/>
-    </ItemGroup>
-
 </Project>
